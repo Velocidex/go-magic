@@ -56,7 +56,7 @@ file_copystr(char *buf, size_t blen, size_t width, const char *str)
 {
     if (++width > blen)
         width = blen;
-    strlcpy(buf, str, width);
+    magic_strlcpy(buf, str, width);
     return buf;
 }
 

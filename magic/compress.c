@@ -449,7 +449,7 @@ file_pipe2file(struct magic_set *ms, int fd, const void *startbuf,
     ssize_t r;
     int tfd;
 
-    (void)strlcpy(buf, "/tmp/file.XXXXXX", sizeof buf);
+    (void)magic_strlcpy(buf, "/tmp/file.XXXXXX", sizeof buf);
 #ifndef HAVE_MKSTEMP
     {
         char *ptr = mktemp(buf);

@@ -568,6 +568,17 @@ magic_error(struct magic_set *ms)
     return (ms->event_flags & EVENT_HAD_ERR) ? ms->o.buf : NULL;
 }
 
+public void
+magic_error_clear(struct magic_set *ms)
+ {
+    if (ms != NULL) {
+        free(ms->o.buf);
+        ms->o.buf = NULL;
+        ms->o.blen = 0;
+    }
+}
+
+
 public int
 magic_errno(struct magic_set *ms)
 {

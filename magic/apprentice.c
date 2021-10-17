@@ -465,7 +465,7 @@ apprentice_1(struct magic_set *ms, const char *fn, int action)
 #ifndef COMPILE_ONLY
     map = apprentice_map(ms, fn);
     if (map == NULL) {
-        if (ms->flags & MAGIC_CHECK)
+        if (ms->flags & MAGIC_CHECK && action != FILE_BUFFER)
             file_magwarn(ms, "using regular magic file `%s'", fn);
         map = apprentice_load(ms, fn, action);
         if (map == NULL)
@@ -549,6 +549,7 @@ file_ms_alloc(int flags)
     ms->regex_max = FILE_REGEX_MAX;
     ms->bytes_max = FILE_BYTES_MAX;
     ms->encoding_max = FILE_ENCODING_MAX;
+
     return ms;
 free:
     free(ms);

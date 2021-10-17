@@ -130,6 +130,8 @@ const char *magic_descriptor(magic_t, int);
 const char *magic_buffer(magic_t, const void *, size_t);
 
 const char *magic_error(magic_t);
+void magic_error_clear(struct magic_set *ms);
+
 int magic_getflags(magic_t);
 int magic_setflags(magic_t, int);
 
@@ -154,6 +156,10 @@ int magic_errno(magic_t);
 
 int magic_setparam(magic_t, int, const void *);
 int magic_getparam(magic_t, int, void *);
+
+
+size_t magic_strlcpy(char *dst, const char *src, size_t siz);
+size_t magic_strlcat(char *dst, const char *src, size_t siz);
 
 #ifdef __cplusplus
 };
