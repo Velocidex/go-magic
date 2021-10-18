@@ -1,0 +1,27 @@
+name: Test
+on: [pull_request]
+jobs:
+  build:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go 1.17
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Build
+      if: always()
+      shell: bash
+      run: |
+        go run ./make.go -v linux
+
+    - name: Test
+      shell: bash
+      if: always()
+      run: |
+        go test -v

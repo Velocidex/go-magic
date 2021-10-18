@@ -476,6 +476,7 @@ struct magic_set {
     uint16_t regex_max;
     size_t bytes_max;       /* number of bytes to read from file */
     size_t encoding_max;        /* bytes to look for encoding */
+
 #ifndef FILE_BYTES_MAX
 # define FILE_BYTES_MAX (1024 * 1024)   /* how much of the file to look at */
 #endif

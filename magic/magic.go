@@ -74,12 +74,14 @@ func (self *Magic) Close() {
 	C.magic_close((C.magic_t)(self.cookie))
 }
 
-func (self *Magic) Error() string {
+func (self *Magic) GetError() string {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
 	s := (C.magic_error((C.magic_t)(self.cookie)))
-	return C.GoString(s)
+	ret := C.GoString(s)
+	(C.magic_error_clear((C.magic_t)(self.cookie)))
+	return ret
 }
 
 func (self *Magic) Errno() int {

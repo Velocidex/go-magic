@@ -30,6 +30,7 @@
  */
 
 #include "file.h"
+#include "magic.h"
 
 #ifndef lint
 FILE_RCSID("@(#)$File: fsmagic.c,v 1.81 2019/07/16 13:30:32 christos Exp $")
@@ -351,7 +352,7 @@ file_fsmagic(struct magic_set *ms, const char *fn, struct stat *sb)
                 (void)strlcpy(buf2, fn, sizeof buf2);
                 buf2[tmp - fn + 1] = '\0';
                 /* plus (rel) link */
-                (void)strlcat(buf2, buf, sizeof buf2);
+                (void)magic_strlcat(buf2, buf, sizeof buf2);
                 tmp = buf2;
             }
             if (stat(tmp, &tstatbuf) < 0)
