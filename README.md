@@ -28,7 +28,7 @@ defer handle.Close()
 
 // Load built in magic files
 magic_files.LoadDefaultMagic(handle)
-classification := handle.File("foobar.jpeg")
+classification, err := handle.File("foobar.jpeg")
 ```
 
 This binding bundles the built in magic files. You can load them into
