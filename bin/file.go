@@ -49,7 +49,12 @@ func doFile() {
 	}
 
 	for _, f := range *file_command_file_targets {
-		fmt.Printf("%v: %v\n", f, handle.File(f))
+		magic, err := handle.File(f)
+		if err != nil {
+			kingpin.Fatalf("Magic Error: %v", err)
+		}
+
+		fmt.Printf("%v: %v\n", f, magic)
 	}
 }
 

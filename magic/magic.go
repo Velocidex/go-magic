@@ -7,6 +7,7 @@ package magic
 */
 import "C"
 import (
+	"errors"
 	"sync"
 	"unsafe"
 )
@@ -91,13 +92,18 @@ func (self *Magic) Errno() int {
 	return (int)(C.magic_errno((C.magic_t)(self.cookie)))
 }
 
-func (self *Magic) File(filename string) string {
+func (self *Magic) File(filename string) (string, error) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
-	return C.GoString(C.magic_file((C.magic_t)(self.cookie), cfilename))
+
+	out := C.magic_file(self.cookie, cfilename)
+	if out == nil {
+		return "", errors.New(C.GoString(C.magic_error(self.cookie)))
+	}
+	return C.GoString(out), nil
 }
 
 func (self *Magic) Buffer(b []byte) string {
