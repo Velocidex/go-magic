@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/alecthomas/kingpin v2.2.6+incompatible
-	github.com/magefile/mage v1.11.0
+	github.com/magefile/mage v1.15.0
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
