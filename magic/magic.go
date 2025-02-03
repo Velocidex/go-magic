@@ -99,7 +99,6 @@ func (self *Magic) File(filename string) (string, error) {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
 
-	// return C.GoString(C.magic_file((C.magic_t)(self.cookie), cfilename))
 	out := C.magic_file(self.cookie, cfilename)
 	if out == nil {
 		return "", errors.New(C.GoString(C.magic_error(self.cookie)))
