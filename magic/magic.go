@@ -97,6 +97,9 @@ func (self *Magic) File(filename string) (string, error) {
 	defer self.mu.Unlock()
 
 	cfilename := C.CString(filename)
+	if cfilename == nil {
+		return "", fmt.Errorf("could not convert filename to C string")
+	}
 	defer C.free(unsafe.Pointer(cfilename))
 
 	out := C.magic_file(self.cookie, cfilename)
