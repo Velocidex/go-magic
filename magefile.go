@@ -91,6 +91,13 @@ func Linux() error {
 	}.Run()
 }
 
+func Windows() error {
+	return Builder{
+		goos: "windows",
+		arch: "amd64",
+	}.Run()
+}
+
 func PrepareMagicFile(file_src_tree string) error {
 	fmt.Printf("Will compile magic files from file source tree %v\n", file_src_tree)
 
@@ -136,7 +143,6 @@ func PrepareMagicFile(file_src_tree string) error {
 
 	return replace_string_in_file(
 		"magic_files/ab0x.go", "func init()", "func Init()")
-
 }
 
 func replace_string_in_file(filename string, old string, new string) error {
@@ -147,3 +153,4 @@ func replace_string_in_file(filename string, old string, new string) error {
 	newContents := strings.Replace(string(read), old, new, -1)
 	return ioutil.WriteFile(filename, []byte(newContents), 0)
 }
+

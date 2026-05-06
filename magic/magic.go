@@ -152,6 +152,7 @@ func (self *Magic) Load(filename string) int {
 	return (int)(C.magic_load((C.magic_t)(self.cookie), cfilename))
 }
 
+
 // Load definitions from this buffer.
 func (self *Magic) LoadBuffer(data string) int {
 	self.mu.Lock()
@@ -161,3 +162,4 @@ func (self *Magic) LoadBuffer(data string) int {
 	defer C.free(unsafe.Pointer(cdata))
 	return (int)(C.magic_load_from_buffer((C.magic_t)(self.cookie), cdata))
 }
+

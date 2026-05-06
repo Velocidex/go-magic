@@ -11,6 +11,7 @@ func LoadDefaultMagic(handle *magic.Magic) error {
 	if err != nil {
 		return err
 	}
+	_ = data
 	handle.LoadBuffer(string(data))
 
 	return nil

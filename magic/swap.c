@@ -1,6 +1,7 @@
 /*
- * Copyright (c) Christos Zoulas 2017.
- * All Rights Reserved.
+ * Copyright (c) Ian F. Darwin 1986-1995.
+ * Software written by Ian F. Darwin and others;
+ * maintained 1995-present by Christos Zoulas and others.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,76 +25,77 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+/*
+ * apprentice - make one pass through /etc/magic, learning its secrets.
+ */
+
 #include "file.h"
 
 #ifndef	lint
-FILE_RCSID("@(#)$File: buffer.c,v 1.14 2025/05/28 19:22:22 christos Exp $")
+FILE_RCSID("@(#)$File: swap.c,v 1.1 2026/04/19 19:56:49 christos Exp $")
 #endif	/* lint */
 
-#include "magic.h"
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/stat.h>
+#include "swap.h"
 
-void
-buffer_init(struct buffer *b, int fd, const struct stat *st, const void *data,
-    size_t len)
+#if !defined(HAVE_BYTESWAP_H) && !defined(HAVE_SYS_BSWAP_H)
+/*
+ * swap a short
+ */
+file_protected uint16_t
+file_swap2(uint16_t sv)
 {
-	b->fd = fd;
-	if (st)
-		memcpy(&b->st, st, sizeof(b->st));
-	else if (b->fd == -1 || fstat(b->fd, &b->st) == -1)
-		memset(&b->st, 0, sizeof(b->st));
-	b->fbuf = data;
-	b->flen = len;
-	b->eoff = 0;
-	b->ebuf = NULL;
-	b->elen = 0;
+	uint16_t rv;
+	uint8_t *s = RCAST(uint8_t *, RCAST(void *, &sv));
+	uint8_t *d = RCAST(uint8_t *, RCAST(void *, &rv));
+	d[0] = s[1];
+	d[1] = s[0];
+	return rv;
 }
 
-void
-buffer_fini(struct buffer *b)
+/*
+ * swap an int
+ */
+file_protected uint32_t
+file_swap4(uint32_t sv)
 {
-	free(b->ebuf);
-	b->ebuf = NULL;
-	b->elen = 0;
+	uint32_t rv;
+	uint8_t *s = RCAST(uint8_t *, RCAST(void *, &sv));
+	uint8_t *d = RCAST(uint8_t *, RCAST(void *, &rv));
+	d[0] = s[3];
+	d[1] = s[2];
+	d[2] = s[1];
+	d[3] = s[0];
+	return rv;
 }
 
-int
-buffer_fill(const struct buffer *bb)
+/*
+ * swap a quad
+ */
+file_protected uint64_t
+file_swap8(uint64_t sv)
 {
-	struct buffer *b = CCAST(struct buffer *, bb);
-
-	if (b->elen != 0)
-		return b->elen == FILE_BADSIZE ? -1 : 0;
-
-	// Nothing to refill, everything is in memory
-	if (b->fd == -1)
-		return 0;
-
-	if (!S_ISREG(b->st.st_mode))
-		goto out;
-
-	b->elen = CAST(size_t, b->st.st_size) < b->flen ?
-	    CAST(size_t, b->st.st_size) : b->flen;
-	if (b->elen == 0) {
-		free(b->ebuf);
-		b->ebuf = NULL;
-		return 0;
-	}
-	if ((b->ebuf = malloc(b->elen)) == NULL)
-		goto out;
-
-	b->eoff = b->st.st_size - b->elen;
-	if (pread(b->fd, b->ebuf, b->elen, b->eoff) == -1) {
-		free(b->ebuf);
-		b->ebuf = NULL;
-		goto out;
-	}
-
-	return 0;
-out:
-	b->elen = FILE_BADSIZE;
-	return -1;
+	uint64_t rv;
+	uint8_t *s = RCAST(uint8_t *, RCAST(void *, &sv));
+	uint8_t *d = RCAST(uint8_t *, RCAST(void *, &rv));
+# if 0
+	d[0] = s[3];
+	d[1] = s[2];
+	d[2] = s[1];
+	d[3] = s[0];
+	d[4] = s[7];
+	d[5] = s[6];
+	d[6] = s[5];
+	d[7] = s[4];
+# else
+	d[0] = s[7];
+	d[1] = s[6];
+	d[2] = s[5];
+	d[3] = s[4];
+	d[4] = s[3];
+	d[5] = s[2];
+	d[6] = s[1];
+	d[7] = s[0];
+# endif
+	return rv;
 }
+#endif
