@@ -25,34 +25,24 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include "file.h"
 
-#ifndef	lint
-FILE_RCSID("@(#)$File: dprintf.c,v 1.4 2022/09/24 20:30:13 christos Exp $")
-#endif	/* lint */
+#ifdef HAVE_BYTESWAP_H
+#include <byteswap.h>
+#endif
+#ifdef HAVE_SYS_BSWAP_H
+#include <sys/bswap.h>
+#endif
 
-#include <assert.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdarg.h>
-
-int
-dprintf(int fd, const char *fmt, ...)
-{
-	va_list ap;
-	/* Simpler than using vasprintf() here, since we never need more */
-	char buf[1024];
-	int len;
-
-	va_start(ap, fmt);
-	len = vsnprintf(buf, sizeof(buf), fmt, ap);
-	va_end(ap);
-
-	if ((size_t)len >= sizeof(buf))
-		return -1;
-
-	if (write(fd, buf, (size_t)len) != len)
-		return -1;
-
-	return len;
-}
+#if defined(HAVE_BYTESWAP_H)
+#define file_swap2(x)	bswap_16(x)
+#define file_swap4(x)	bswap_32(x)
+#define file_swap8(x)	bswap_64(x)
+#elif defined(HAVE_SYS_BSWAP_H)
+#define file_swap2(x)	bswap16(x)
+#define file_swap4(x)	bswap32(x)
+#define file_swap8(x)	bswap64(x)
+#else
+file_protected uint16_t file_swap2(uint16_t);
+file_protected uint32_t file_swap4(uint32_t);
+file_protected uint64_t file_swap8(uint64_t);
+#endif

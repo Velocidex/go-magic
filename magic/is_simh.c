@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2019 Christos Zoulas
+ * Copyright (c) 2023 Christos Zoulas
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,21 +25,26 @@
  */
 
 /*
- * Parse CSV object serialization format (RFC-4180, RFC-7111)
+ * Parse SIM-H tape files
+ * http://simh.trailing-edge.com/docs/simh_magtape.pdf
  */
 
 #ifndef TEST
 #include "file.h"
 
 #ifndef lint
-FILE_RCSID("@(#)$File: is_csv.c,v 1.15 2024/05/18 15:16:13 christos Exp $")
+FILE_RCSID("@(#)$File: is_simh.c,v 1.11 2025/05/31 23:31:45 christos Exp $")
 #endif
 
 #include <string.h>
+#include <stddef.h>
 #include "magic.h"
 #else
-#define CAST(a, b)	((a)(b))
+#include <stdint.h>
 #include <sys/types.h>
+#include <string.h>
+#include <stddef.h>
+#define CAST(a, b) (a)(b)
 #endif
 
 
@@ -51,113 +56,126 @@ FILE_RCSID("@(#)$File: is_csv.c,v 1.15 2024/05/18 15:16:13 christos Exp $")
 #endif
 
 /*
- * if CSV_LINES == 0:
- *	check all the lines in the buffer
+ * if SIMH_TAPEMARKS == 0:
+ *	check all the records and tapemarks
  * otherwise:
- *	check only up-to the number of lines specified
- *
- * the last line count is always ignored if it does not end in CRLF
+ *	check only up-to the number of tapemarks specified
  */
-#ifndef CSV_LINES
-#define CSV_LINES 10
+#ifndef SIMH_TAPEMARKS
+#define SIMH_TAPEMARKS 10
 #endif
 
-static int csv_parse(const unsigned char *, const unsigned char *);
+typedef union {
+	char s[4];
+	uint32_t u;
+} myword; 
 
-static const unsigned char *
-eatquote(const unsigned char *uc, const unsigned char *ue)
+static myword simh_bo;
+
+#define NEED_SWAP	(simh_bo.u == CAST(uint32_t, 0x01020304))
+
+/*
+ * swap an int
+ */
+static uint32_t
+swap4(uint32_t sv)
 {
-	int quote = 0;
+	myword d, s;
+	s.u = sv;
+	d.s[0] = s.s[3];
+	d.s[1] = s.s[2];
+	d.s[2] = s.s[1];
+	d.s[3] = s.s[0];
+	return d.u;
+}
 
-	while (uc < ue) {
-		unsigned char c = *uc++;
-		if (c != '"') {
-			// We already got one, done.
-			if (quote) {
-				return --uc;
-			}
-			continue;
-		}
-		if (quote) {
-			// quote-quote escapes
-			quote = 0;
-			continue;
-		}
-		// first quote
-		quote = 1;
-	}
-	return ue;
+
+static uint32_t
+getlen(const unsigned char **uc, int *err)
+{
+	uint32_t n;
+	memcpy(&n, *uc, sizeof(n));
+	*err = 0;
+	*uc += sizeof(n);
+	if (NEED_SWAP)
+		n = swap4(n);
+	if (n == 0xffffffff)	/* check for End of Medium */
+		return n;
+	/* Check bits 25 to 28 are not used */
+	*err = ((n & 0x00ffffff) != (n & 0x0fffffff));
+	n &= 0x00ffffff;	/* keep only the record len */
+	if (n & 1)
+		n++;
+	return n;
 }
 
 static int
-csv_parse(const unsigned char *uc, const unsigned char *ue)
+simh_parse(const unsigned char *uc, const unsigned char *ue)
 {
-	size_t nf = 0, tf = 0, nl = 0;
+	uint32_t nbytes, cbytes;
+	const unsigned char *orig_uc = uc;
+	size_t nt = 0, nr = 0;
+	int err = 0;
 
-	while (uc < ue) {
-		switch (*uc++) {
-		case '"':
-			// Eat until the matching quote
-			uc = eatquote(uc, ue);
+	(void)memcpy(simh_bo.s, "\01\02\03\04", 4);
+
+	while (ue - uc >= CAST(ptrdiff_t, sizeof(nbytes))) {
+		nbytes = getlen(&uc, &err);
+		if (err)
+			return 0;
+		if ((nt > 0 || nr > 0) && nbytes == 0xFFFFFFFF)
+			/* EOM after at least one record or tapemark */
 			break;
-		case ',':
-			nf++;
-			break;
-		case '\n':
-			DPRINTF("%zu %zu %zu\n", nl, nf, tf);
-			nl++;
-#if CSV_LINES
-			if (nl == CSV_LINES)
-				return tf > 1 && tf == nf;
+		if (nbytes == 0) {
+			nt++;	/* count tapemarks */
+#if SIMH_TAPEMARKS
+			if (nt == SIMH_TAPEMARKS)
+				break;
 #endif
-			if (tf == 0) {
-				// First time and no fields, give up
-				if (nf == 0) 
-					return 0;
-				// First time, set the number of fields
-				tf = nf;
-			} else if (tf != nf) {
-				// Field number mismatch, we are done.
-				return 0;
-			}
-			nf = 0;
-			break;
-		default:
-			break;
+			continue;
 		}
+		/* handle a data record */
+		uc += nbytes;
+		if (ue - uc < CAST(ptrdiff_t, sizeof(nbytes)))
+			break;
+		cbytes = getlen(&uc, &err);
+		if (err)
+			return 0;
+		if (nbytes != cbytes)
+			return 0;
+		nr++;
 	}
-	return tf > 1 && nl >= 2;
+	if (nt * sizeof(uint32_t) == CAST(size_t, uc - orig_uc))
+		return 0;	/* All examined data was tapemarks (0) */
+	if (nr == 0)		/* No records */
+		return 0;
+	return 1;
 }
 
 #ifndef TEST
 int
-file_is_csv(struct magic_set *ms, const struct buffer *b, int looks_text,
-    const char *code)
+file_is_simh(struct magic_set *ms, const struct buffer *b)
 {
 	const unsigned char *uc = CAST(const unsigned char *, b->fbuf);
 	const unsigned char *ue = uc + b->flen;
 	int mime = ms->flags & MAGIC_MIME;
 
-	if (!looks_text)
-		return 0;
-
 	if ((ms->flags & (MAGIC_APPLE|MAGIC_EXTENSION)) != 0)
 		return 0;
 
-	if (!csv_parse(uc, ue))
+	if (!simh_parse(uc, ue))
 		return 0;
 
 	if (mime == MAGIC_MIME_ENCODING)
 		return 1;
 
 	if (mime) {
-		if (file_printf(ms, "text/csv") == -1)
+		if (file_printf(ms, "application/SIMH-tape-data") == -1)
 			return -1;
 		return 1;
 	}
 
-	if (file_printf(ms, "CSV %s%stext", code ? code : "",
-	    code ? " " : "") == -1)
+	if (file_printf(ms, "SIMH tape data") == -1)
 		return -1;
 
 	return 1;
@@ -187,13 +205,13 @@ main(int argc, char *argv[])
 	if (fstat(fd, &st) == -1)
 		err(EXIT_FAILURE, "Can't stat `%s'", argv[1]);
 
-	if ((p = CAST(unsigned char *, malloc(st.st_size))) == NULL)
+	if ((p = CAST(char *, malloc(st.st_size))) == NULL)
 		err(EXIT_FAILURE, "Can't allocate %jd bytes",
 		    (intmax_t)st.st_size);
 	if (read(fd, p, st.st_size) != st.st_size)
 		err(EXIT_FAILURE, "Can't read %jd bytes",
 		    (intmax_t)st.st_size);
-	printf("is csv %d\n", csv_parse(p, p + st.st_size));
+	printf("is simh %d\n", simh_parse(p, p + st.st_size));
 	return 0;
 }
 #endif
