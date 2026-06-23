@@ -87,7 +87,7 @@ func (self Builder) Run() error {
 func Linux() error {
 	return Builder{
 		goos: "linux",
-		arch: "amd64",
+		arch: runtime.GOARCH,
 	}.Run()
 }
 
