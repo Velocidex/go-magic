@@ -1334,11 +1334,13 @@ regex_compile (
             case ')':
               if (syntax & RE_NO_BK_PARENS) goto normal_backslash;
 
-              if (COMPILE_STACK_EMPTY)
-                if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD)
-                  goto normal_backslash;
-                else
-                  return REG_ERPAREN;
+              if (COMPILE_STACK_EMPTY) {
+                  if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD) {
+                      goto normal_backslash;
+                  } else {
+                      return REG_ERPAREN;
+                  }
+              };
 
             handle_close:
               if (fixup_alt_jump)
@@ -1354,11 +1356,13 @@ regex_compile (
                 }
 
               /* See similar code for backslashed left paren above.  */
-              if (COMPILE_STACK_EMPTY)
-                if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD)
-                  goto normal_char;
-                else
-                  return REG_ERPAREN;
+              if (COMPILE_STACK_EMPTY) {
+                  if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD) {
+                      goto normal_char;
+                  } else {
+                      return REG_ERPAREN;
+                  }
+              }
 
               /* Since we just checked for an empty stack above, this
                  ``can't happen''.  */
@@ -2533,7 +2537,7 @@ re_set_registers (
     {
       bufp->regs_allocated = REGS_UNALLOCATED;
       regs->num_regs = 0;
-      regs->start = regs->end = (regoff_t) 0;
+      regs->start = regs->end = NULL;
     }
 }
 
@@ -3506,8 +3510,8 @@ re_match_2 (
         /* Compare that many; failure if mismatch, else move
                    past them.  */
         if (translate
-                    ? bcmp_translate (d, d2, mcnt, translate)
-                    : bcmp (d, d2, mcnt))
+            ? bcmp_translate (( const unsigned char*)d, d2, mcnt, translate)
+            : bcmp (d, d2, mcnt))
           goto fail;
         d += mcnt, d2 += mcnt;
           }
@@ -4321,9 +4325,7 @@ re_compile_pattern (
 /* BSD has one and only one pattern buffer.  */
 static struct re_pattern_buffer re_comp_buf;
 
-char *
-re_comp (s)
-    const char *s;
+char * re_comp(const char *s)
 {
   reg_errcode_t ret;
 
@@ -4359,9 +4361,7 @@ re_comp (s)
 }
 
 
-int
-re_exec (s)
-    const char *s;
+int re_exec (const char *s)
 {
   const int len = strlen (s);
   return
